@@ -1,0 +1,249 @@
+#! /bin/bash
+
+#	PLASMA FLOATING WINDOWS. It moves windows for plasma TV used as a monitor
+
+#    Copyright (C) 2012 Vasilij Vasiljevich Ubijtca.
+
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# You can contact me there: http://www.unix.com/shell-programming-scripting/178493-completed-bash-script-plasma-tv.html
+# or http://www.unix.com    654321 - profil name
+
+
+
+#xdotool windowmove $aa 140 140
+#x=x0+r*cos(a)  #++--
+#y=y0+r*sin(a)  #+--+
+trap bashtrap INT
+bashtrap()
+{
+	echo "CTRL+C Detected !...executing bash trap !"
+	killall myw1080p #script name
+}
+#CONSTANTS
+	#you may change for your resolution
+	declare -ri width=1920
+	declare -ri height=1080
+	declare -ri widthconst=$width-$width/6 #large windows
+	declare -ri heightconst=$height-$height/6
+	declare -ri xoc=47 #position for widthconst heightconst windows
+	declare -ri yoc=51
+	declare -ri r0=13 #(>r0l) #hight radius
+	let r0l=8 #low radius
+	declare -ri r0l
+	#
+
+	declare -ri sme=$r0+3 #moving detector  (>r0 )
+#	declare -ra ar1=(0 25 50 70 87 96 100) #sin
+#	declare -ra ar2=(100 96 87 70 50 25 0) #cos
+	declare -ra ar1=(0 7 14 21 28 34 41 47 53 59 64 69 74 79 83 87 90 93 95 97 98 99 100) #23 sin
+	declare -ra ar2=(100 100 99 98 96 94 91 88 85 81 77 72 67 62 56 50 44 37 31 24 16 8 0) #23 cos
+	let co=23-2 #just array size
+	declare -ri co
+#
+abs ()                             #  Absolute value
+{                                  #  Uses global "value" variable.
+  if [ "$1" -lt 0 ]                #  If negative
+  then                             #+ then
+    let "value = 0 - $1"           #+ change sign,
+  else                             #+ else
+    let "value = $1"               #+ leave it alone.
+  fi
+}
+
+function function_wind {
+	aa=($1) #dont need
+	x=0
+	y=0
+	declare -i r=r0 #current radius
+	declare -i rt=0 #radus changer flag 0=min 1=pluss
+	declare -i COUNT=0
+	declare -i ff=1 #phase
+	declare -i value=0
+	tmp=`xwininfo -id $aa 2> /dev/null`
+	xs=$(echo "$tmp" | grep "Relative upper-left X")
+	declare -i xs=${xs:25}
+	ys=$(echo "$tmp" | grep "Relative upper-left Y")
+	declare -i ys=${ys:25}
+	randnum=$[ ( $RANDOM % r0l )  + 0 ] #random 0 to r0l can be any number
+	declare -ri xocf=$xoc+$randnum #position for widthconst heightconst windows + random
+	randnum=$[ ( $RANDOM % r0l )  + 0 ] #random 0 to r0l can be any number
+	declare -ri yocf=$yoc+$randnum
+	echo Function wind $aa
+
+	windwidth=$(echo "$tmp" | grep "Width")
+	windwidth=${windwidth:9}
+	windheight=$(echo "$tmp" | grep "Height")
+	windheight=${windheight:10}
+	if [ $windwidth -lt $widthconst -o $windheight -lt $heightconst ]; then #move small windows at openning.
+		randnum1=$[ ( $RANDOM % 300 )  + $xoc ] #random xoc to xoc+400
+		randnum2=$[ ( $RANDOM % 300 )  + $yoc ] #random yoc to yoc+400
+		xdotool windowmove $aa $randnum1 $randnum2
+	fi
+	
+	while [ true ]; do
+		tmp=`xwininfo -id $aa 2> /dev/null`
+		if [ $? -ne 0 ]; then #window was closed
+			exit
+		fi
+		xi=$(echo "$tmp" | grep "Absolute upper-left X")
+		xi=${xi:25}
+		yi=$(echo "$tmp" | grep "Absolute upper-left Y")
+		yi=${yi:25}
+		windwidth=$(echo "$tmp" | grep "Width")
+		windwidth=${windwidth:9}
+		windheight=$(echo "$tmp" | grep "Height")
+		windheight=${windheight:10}
+#		echo width=$width height=$height
+		if [ $windwidth -gt $widthconst -a $windheight -gt $heightconst ]; then #test for large windows
+			xo=$xocf
+			yo=$yocf
+#			echo using xo=$xocf yo=$yocf
+		else
+			let xdif=xi-xo
+			let ydif=yi-yo
+			abs $xdif
+			xdif=$value
+			abs $ydif
+			ydif=$value
+			if [ $xdif -gt $sme -o $ydif -gt $sme ]; then	#user moving detector
+				declare -i xo=$xi-$r
+				yo=$yi
+				echo "Position fixed for" $aa window
+#				echo $aa xy=$x $y  xoy0=$xo $yo  xiyi=$xi $yi xydif=$xdif $ydif  ff=$ff  COUNT=$COUNT  r=$r xsys=$xs ys
+			fi		
+
+		fi			
+		#main calculations
+		if (( $ff == 1 )) || (($ff == 4 )); then #cos
+			let x=xo+$r*${ar2[COUNT]}/100			
+		else #2 3
+			let x=xo-$r*${ar2[COUNT]}/100
+
+		fi
+		if (( $ff == 1 )) || (($ff == 2 )); then #sin
+			let y=yo+$r*${ar1[COUNT]}/100
+		else #3 4
+			let y=yo-$r*${ar1[COUNT]}/100
+		fi
+		#MAIN FUNCTION
+		xdotool windowmove $aa $(($x-$xs)) $(($y-$ys))
+		#bug test
+		xi=$(xwininfo -id $aa |& grep "Absolute upper-left X") #get window position
+		xi=${xi:25}
+		yi=$(xwininfo -id $aa |& grep "Absolute upper-left Y")
+		yi=${yi:25}
+		if [ "$xi" -ne "$x" -o "$yi" -ne "$y" ]; then #bug test. not important. delete it if u want ######  xy - position now; xi yi - real position now
+			if [ ${xs:0:1} = '-' -o ${ys:0:1} = '-' ]; then
+#				abs $xs
+#				let x2=x+$value
+#				abs $xs
+#				let y2=y+$ys
+				echo "$aa Window totally isn't movable"
+				xwininfo -all -id $aa | grep "Parent window id"
+				sleep 170
+			else				
+				let x2=x-$xs
+				let y2=y-$ys
+				randnum1=$[ ( $RANDOM % 20 )  + $sme ] #random sme to 20+sme
+				randnum2=$[ ( $RANDOM % 20 )  + $sme ] #random sme to 20+sme
+				tmpvar=$(xwininfo -id $aa |& grep "Relative upper-left X") #just in case
+				declare -i xs=${tmpvar:25}
+				tmpvar=$(xwininfo -id $aa |& grep "Relative upper-left Y")
+				declare -i ys=${tmpvar:25}
+				if [ $width -le 1 ]; then
+					echo "$aa Window totally isn't movable"
+					xwininfo -all -id $aa | grep "Parent window id"
+					sleep 10
+				elif [ $xs -ne 0 -a $xi -eq $x2 -a $yi -eq $y2 ]; then
+					echo $aa "window is exception. applying new configuration"
+					xs=0
+					ys=0
+				elif [ $xs -eq 0 -a $xi -eq $x -a $yi -eq $y ]; then
+					xdotool windowmove $aa $(($randnum1*4-$xs)) $(($randnum2*4-$ys))
+				elif [ $xi -ne $x -a $yi -ne $y ]; then #double stickying. most stupid crazy part
+#					echo $aa xy=$x $y  xoy0=$xo =$yo  xiyi=$xi $yi xydif=$xdif $ydif  ff=$ff  COUNT=$COUNT  r=$r xs=$xs ys=$ys
+					echo "$aa Double stickying. Move window to the new position or resize. if it repeat then this window is not movable properly"
+					xdotool windowmove $aa $(($xocf+$randnum1*3-$xs)) $(($yocf+$randnum2*3-$ys))
+				else #stickying. most stupid crazy part
+					let tmpvarx=$width/18
+					let tmpvary=$height/18
+					echo $aa xy=$x $y  xoy0=$xo $yo  xiyi=$xi $yi xydif=$xdif $ydif  ff=$ff  COUNT=$COUNT  r=$r xs=$xs
+					echo "$aa Stickying. Move window to the new position or resize. if it repeat move window or change xoc yoc."
+					if [ $xi -le $tmpvarx -o $yi -le $tmpvary ]; then
+						xdotool windowmove $aa $(($xocf+$randnum1*2-$xs)) $(($yocf+$randnum2*2-$ys))
+						echo $xi $yi
+					else
+						echo 2
+						xdotool windowmove $aa $(($xi-$randnum1-$xs)) $(($yi-$randnum2-$ys))
+					fi
+					
+				fi
+			fi
+			sleep 10
+			continue
+		fi
+		#
+		if (( $ff == 1 )) || (($ff == 3 )); then #phase calculations and radius changer
+			((COUNT++))
+			if [ $COUNT -gt $co ]; then		
+				((ff++))
+#				echo ff= $ff COUNT=$COUNT r=$r
+			fi	
+		else
+			((COUNT--))
+			if [ $COUNT -lt 1 ]; then
+				if [ $ff -eq 4 ]; then			
+					let ff=1
+					#RADIUS
+					if [ $rt -eq 0 ]; then
+						((r--))
+						if [ $r -le $r0l ]; then
+							let rt=1
+						fi
+					else
+						((r++))
+						if [ $r -gt $r0 ]; then
+							let rt=0
+						fi
+					fi
+				else
+					((ff++))
+				fi
+#				echo ff= $ff COUNT=$COUNT r=$r
+			fi
+		fi
+		let s=$r-$r0l+1
+		sleep $s
+#		sleep 0.1
+	done
+}
+## window name
+thisWindow=`xprop -root | grep "_NET_ACTIVE_WINDOW(WINDOW)" | awk '{ print $5}'`
+
+xdotool set_window --name "myw1080p" $thisWindow
+##
+winds=($(xdotool getwindowfocus)) #array for windows IDs
+function_wind $winds &
+while [ true ]; do #search for new windows
+	beta=$(xdotool getwindowfocus)
+	arrtest=$(echo ${winds[@]} | grep $beta)
+	if [ ${#arrtest} -eq 0 ]; then #if window is not in winds array then we start moving and add it.
+
+		function_wind $beta &
+		winds[${#winds[*]}]=$beta
+#		echo ${winds[*]}
+	fi
+	sleep 1
+done

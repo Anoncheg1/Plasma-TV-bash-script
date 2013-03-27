@@ -39,6 +39,7 @@ bashtrap()
 	declare -ri heightconst=$height-$height/6
 	declare -ri xoc=47 #position for widthconst heightconst windows
 	declare -ri yoc=51
+	declare -ri POSITIONFIX_SMALL=0	#change position at opening for all small windows 
 	declare -ri r0=13 #(>r0l) #hight radius
 	let r0l=8 #low radius
 	declare -ri r0l
@@ -82,14 +83,16 @@ function function_wind {
 	declare -ri yocf=$yoc+$randnum
 	echo Function wind $aa
 
-	windwidth=$(echo "$tmp" | grep "Width")
-	windwidth=${windwidth:9}
-	windheight=$(echo "$tmp" | grep "Height")
-	windheight=${windheight:10}
-	if [ $windwidth -lt $widthconst -o $windheight -lt $heightconst ]; then #move small windows at openning.
-		randnum1=$[ ( $RANDOM % 300 )  + $xoc ] #random xoc to xoc+400
-		randnum2=$[ ( $RANDOM % 300 )  + $yoc ] #random yoc to yoc+400
-		xdotool windowmove $aa $randnum1 $randnum2
+	if [ $POSITIONFIX_SMALL -eq 1 ]; then
+		windwidth=$(echo "$tmp" | grep "Width")
+		windwidth=${windwidth:9}
+		windheight=$(echo "$tmp" | grep "Height")
+		windheight=${windheight:10}
+		if [ $windwidth -lt $widthconst -o $windheight -lt $heightconst ]; then #move small windows at openning.
+			randnum1=$[ ( $RANDOM % 300 )  + $xoc ] #random xoc to xoc+400
+			randnum2=$[ ( $RANDOM % 300 )  + $yoc ] #random yoc to yoc+400
+			xdotool windowmove $aa $randnum1 $randnum2
+		fi
 	fi
 	
 	while [ true ]; do

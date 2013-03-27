@@ -110,9 +110,11 @@ function function_wind {
 		windheight=${windheight:10}
 #		echo width=$width height=$height
 		if [ $windwidth -gt $widthconst -a $windheight -gt $heightconst ]; then #test for large windows
-			xo=$xocf
-			yo=$yocf
-#			echo using xo=$xocf yo=$yocf
+			if [[ ! $(echo "$tmp" | grep "esktop") ]]; then
+				xo=$xocf
+				yo=$yocf
+#				echo using xo=$xocf yo=$yocf
+			fi
 		else
 			let xdif=xi-xo
 			let ydif=yi-yo

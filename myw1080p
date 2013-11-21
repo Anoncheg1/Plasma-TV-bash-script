@@ -29,7 +29,8 @@ trap bashtrap INT
 bashtrap()
 {
 	echo "CTRL+C Detected !...executing bash trap !"
-	killall myw1080p #script name
+	killall -s KILL myw1080p #script name
+	exit
 }
 #CONSTANTS
 	#you may change for your resolution
@@ -109,7 +110,7 @@ function function_wind {
 		windheight=$(echo "$tmp" | grep "Height")
 		windheight=${windheight:10}
 #		echo width=$width height=$height
-		if [ $windwidth -gt $widthconst -a $windheight -gt $heightconst ]; then #test for large windows
+		if [[ $windwidth -gt $widthconst && $windheight -gt $heightconst ]]; then #test for large windows
 			if [[ ! $(echo "$tmp" | grep "esktop") ]]; then
 				xo=$xocf
 				yo=$yocf
